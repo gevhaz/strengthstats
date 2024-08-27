@@ -1,0 +1,74 @@
+Name,Language,Sex,Age,Email
+John Doe,en,Male,-- --,john.doe@gmail.com
+
+Workouts
+Name,Date,Body weight,Shape,Sleep,Calories,Stress
+Program 1: Workout 1,2024-01-15,70,1,2,3,-1
+"Exercise, Plank",Set,1,bodyweight,70,extraWeight,0,time,00:01:00
+"Exercise, Push-Up",Set,1,reps,10,bodyweight,70,extraWeight,0
+"Exercise, Push-Up",Set,2,reps,10,bodyweight,70,extraWeight,0
+"Exercise, Push-Up",Set,3,reps,12,bodyweight,70,extraWeight,0
+"Exercise, Push-Up",Set,4,reps,10,bodyweight,70,extraWeight,0
+"Exercise, Back Extension",Set,1,reps,15,bodyweight,70,extraWeight,10
+"Exercise, Back Extension",Set,2,reps,10,bodyweight,70,extraWeight,15
+"Exercise, Back Extension",Set,3,reps,10,bodyweight,70,extraWeight,15
+"Exercise, Back Extension",Set,4,reps,10,bodyweight,70,extraWeight,15
+"Exercise, Seated Leg Curl",Set,1,reps,10,weight,50
+"Exercise, Seated Leg Curl",Set,2,reps,9,weight,50
+"Exercise, Dumbbell Lunge",Set,1,reps,9,weight,20
+"Exercise, Dumbbell Lunge",Set,2,reps,9,weight,20
+"Exercise, Dumbbell Lunge",Set,3,reps,6,weight,24
+"Exercise, Squat",Set,1,reps,10,weight,110
+"Exercise, Squat",Set,2,reps,7,weight,100
+"Exercise, Squat",Set,3,reps,7,weight,110
+
+Program 1: Workout 2,2024-01-08,70,1,-1,1,-1
+"Exercise, Deadlift",Set,1,reps,10,weight,100
+"Exercise, Deadlift",Set,2,reps,10,weight,100
+"Exercise, Deadlift",Set,3,reps,10,weight,105
+"Exercise, Bench Press",Set,1,reps,7,weight,80
+"Exercise, Bench Press",Set,2,reps,8,weight,80
+"Exercise, Bench Press",Set,3,reps,7,weight,80
+"Exercise, Bench Press",Set,4,reps,6,weight,80
+"Exercise, Squat",Set,1,reps,10,weight,100
+"Exercise, Squat",Set,2,reps,7,weight,100
+"Exercise, Squat",Set,3,reps,7,weight,110
+
+Program 1: Workout 1,2024-01-01,70,-1,3,2,1
+"Exercise, Plank",Set,1,bodyweight,70,extraWeight,0,time,00:01:00
+"Exercise, Push-Up",Set,1,reps,10,bodyweight,70,extraWeight,0
+"Exercise, Push-Up",Set,2,reps,10,bodyweight,70,extraWeight,0
+"Exercise, Push-Up",Set,3,reps,10,bodyweight,70,extraWeight,0
+"Exercise, Push-Up",Set,4,reps,10,bodyweight,70,extraWeight,10
+"Exercise, Back Extension",Set,1,reps,15,bodyweight,70,extraWeight,15
+"Exercise, Back Extension",Set,2,reps,10,bodyweight,70,extraWeight,15
+"Exercise, Back Extension",Set,3,reps,10,bodyweight,70,extraWeight,15
+"Exercise, Back Extension",Set,4,reps,10,bodyweight,70,extraWeight,15
+"Exercise, Seated Leg Curl",Set,1,reps,10,weight,50
+"Exercise, Seated Leg Curl",Set,2,reps,9,weight,50
+"Exercise, Dumbbell Lunge",Set,1,reps,9,weight,20
+"Exercise, Dumbbell Lunge",Set,2,reps,9,weight,20
+"Exercise, Dumbbell Lunge",Set,3,reps,6,weight,20
+"Exercise, Squat",Set,1,reps,10,weight,100
+"Exercise, Squat",Set,2,reps,7,weight,100
+"Exercise, Squat",Set,3,reps,7,weight,100
+
+Other program: Workout 1,2023-12-15,70,-1,-1,-1,-1
+"Exercise, Chin-Ups",Set,1,reps,9,bodyweight,70
+"Exercise, Chin-Ups",Set,2,reps,7,bodyweight,70
+"Exercise, Chin-Ups",Set,3,reps,7,bodyweight,70
+"Exercise, Bar Dip",Set,1,reps,10,bodyweight,70,extraWeight,0
+"Exercise, Bar Dip",Set,2,reps,10,bodyweight,70,extraWeight,0
+"Exercise, Bar Dip",Set,3,reps,8,bodyweight,70,extraWeight,10
+"Exercise, Dumbbell Curl",Set,1,reps,12,weight,10
+"Exercise, Dumbbell Curl",Set,2,reps,9,weight,10
+"Exercise, Dumbbell Curl",Set,3,reps,6,weight,10
+"Exercise, Sit-Up",Set,1,reps,20,bodyweight,70,extraWeight,0
+"Exercise, Sit-Up",Set,2,reps,20,bodyweight,70,extraWeight,0
+"Exercise, Sit-Up",Set,3,reps,20,bodyweight,70,extraWeight,10
+"Exercise, Leaning Plank",Set,1,reps,10,bodyweight,70,distanceMeter,0,time,00:00:05
+"Exercise, One-arm Push-Up",Set,1,reps,10,bodyweight,70,height,50
+"Exercise, One-arm Push-Up",Set,2,reps,8,bodyweight,70,height,50
+"Exercise, One-arm Push-Up",Set,3,reps,9,bodyweight,70,height,50
+"Exercise, One-arm Push-Up",Set,4,reps,7,bodyweight,70,height,50
+
