@@ -5,11 +5,11 @@ import pytest
 
 from strengthstats.analysis.preprocessor import (divide_up_csv_lines,
                                                  preprocess_data,
-                                                 preprocess_exercises,
+                                                 preprocess_sets,
                                                  preprocess_workouts)
 
 TEST_DATA = "tests/analysis/resources/sample_export.csv"
-EXERCISES_LINES = (
+SETS_LINES = (
     '0,"Exercise, Plank",Set,1,bodyweight,70,extraWeight,0,time,00:01:00'
     '\n0,"Exercise, Push-Up",Set,1,reps,10,bodyweight,70,extraWeight,0'
     '\n0,"Exercise, Push-Up",Set,2,reps,10,bodyweight,70,extraWeight,0'
@@ -80,7 +80,7 @@ WORKOUTS_LINES = (
     "\n2,Program 1: Workout 1,2024-01-01,70,-1,3,2,1"
     "\n3,Other program: Workout 1,2023-12-15,70,-1,-1,-1,-1"
 )
-EXPECTED_EXERCISE_COLUMNS = [
+EXPECTED_SET_COLUMNS = [
     "workout_index",
     "Exercise",
     "Set",
@@ -105,20 +105,20 @@ EXPECTED_WORKOUT_COLUMNS = [
 
 def test_preprocess_data():
     """Test that DataFrames look as expected when valid data is used."""
-    exercises, workouts = preprocess_data(TEST_DATA)
+    sets, workouts = preprocess_data(TEST_DATA)
 
-    assert list(exercises.columns) == EXPECTED_EXERCISE_COLUMNS
-    assert len(exercises) == 59
+    assert list(sets.columns) == EXPECTED_SET_COLUMNS
+    assert len(sets) == 59
 
     # Spot check
-    assert exercises.at[5, "Exercise"] == "Back Extension"
-    assert exercises.at[5, "Set"] == 1
-    assert exercises.at[5, "reps"] == 15
-    assert exercises.at[5, "bodyweight"] == 70
-    assert exercises.at[5, "extraWeight"] == 10
-    assert not pd.notna(exercises.at[5, "time"])
-    assert not pd.notna(exercises.at[5, "distanceMeter"])
-    assert not pd.notna(exercises.at[5, "height"])
+    assert sets.at[5, "Exercise"] == "Back Extension"
+    assert sets.at[5, "Set"] == 1
+    assert sets.at[5, "reps"] == 15
+    assert sets.at[5, "bodyweight"] == 70
+    assert sets.at[5, "extraWeight"] == 10
+    assert not pd.notna(sets.at[5, "time"])
+    assert not pd.notna(sets.at[5, "distanceMeter"])
+    assert not pd.notna(sets.at[5, "height"])
 
     assert list(workouts.columns) == EXPECTED_WORKOUT_COLUMNS
     assert len(workouts) == 4
@@ -135,10 +135,9 @@ def test_preprocess_data():
 
 def test_divide_up_csv_lines():
     """Test that the lines are divided as expected."""
-    actual_exercises_lines, actual_workouts_lines = divide_up_csv_lines(TEST_DATA)
-    print(actual_exercises_lines)
+    actual_sets_lines, actual_workouts_lines = divide_up_csv_lines(TEST_DATA)
 
-    assert actual_exercises_lines == EXERCISES_LINES
+    assert actual_sets_lines == SETS_LINES
     assert actual_workouts_lines == WORKOUTS_LINES
 
 
@@ -159,18 +158,18 @@ def test_preprocess_workouts():
     assert workouts_df.at[1, "Stress"] == -1
 
 
-def test_preprocess_exercises():
+def test_preprocess_sets():
     """Test that DataFrame looks as expected given correct lines."""
-    exercises_df = preprocess_exercises(EXERCISES_LINES)
-    assert list(exercises_df.columns) == EXPECTED_EXERCISE_COLUMNS
-    assert len(exercises_df) == 59
+    sets_df = preprocess_sets(SETS_LINES)
+    assert list(sets_df.columns) == EXPECTED_SET_COLUMNS
+    assert len(sets_df) == 59
 
     # Spot check
-    assert exercises_df.at[5, "Exercise"] == "Back Extension"
-    assert exercises_df.at[5, "Set"] == 1
-    assert exercises_df.at[5, "reps"] == 15
-    assert exercises_df.at[5, "bodyweight"] == 70
-    assert exercises_df.at[5, "extraWeight"] == 10
-    assert not pd.notna(exercises_df.at[5, "time"])
-    assert not pd.notna(exercises_df.at[5, "distanceMeter"])
-    assert not pd.notna(exercises_df.at[5, "height"])
+    assert sets_df.at[5, "Exercise"] == "Back Extension"
+    assert sets_df.at[5, "Set"] == 1
+    assert sets_df.at[5, "reps"] == 15
+    assert sets_df.at[5, "bodyweight"] == 70
+    assert sets_df.at[5, "extraWeight"] == 10
+    assert not pd.notna(sets_df.at[5, "time"])
+    assert not pd.notna(sets_df.at[5, "distanceMeter"])
+    assert not pd.notna(sets_df.at[5, "height"])

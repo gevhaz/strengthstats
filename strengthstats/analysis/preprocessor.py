@@ -10,13 +10,13 @@ logger = logging.getLogger(__name__)
 
 
 def divide_up_csv_lines(data_path: str) -> tuple[str, str]:
-    """Extract lines in CSV relevant to either workouts or exercises.
+    """Extract lines in CSV relevant to either workouts or sets.
 
     Args:
         data_path: Path to a StrengthLog app exported CSV.
 
     Return:
-        A tuple with one string containing lines relevant to exercises,
+        A tuple with one string containing lines relevant to sets,
         and one string containing lines relevant to full workouts.
     """
     with open(data_path, "r") as f:
@@ -35,17 +35,17 @@ def divide_up_csv_lines(data_path: str) -> tuple[str, str]:
         sys.exit(1)
 
     workouts_lines: list[str] = []
-    exercises_lines: list[str] = []
+    sets_lines: list[str] = []
     for index, raw_workout in enumerate(raw_workouts):
         raw_workout_lines = raw_workout.strip().split("\n")
         workouts_lines.append(f"{index},{raw_workout_lines[0]}")
         for line in raw_workout_lines[1:]:
-            exercises_lines.append(f"{index},{line}")
+            sets_lines.append(f"{index},{line}")
 
-    exercises_csv = "\n".join(exercises_lines)
+    sets_csv = "\n".join(sets_lines)
     workouts_csv = "\n".join(workouts_lines)
 
-    return exercises_csv, workouts_csv
+    return sets_csv, workouts_csv
 
 
 def preprocess_workouts(workouts_csv: str) -> pd.DataFrame:
@@ -55,11 +55,11 @@ def preprocess_workouts(workouts_csv: str) -> pd.DataFrame:
     and set data types.
 
     Args:
-        exercises_csv: Lines from the StrengthLog app export with data
+        sets_csv: Lines from the StrengthLog app export with data
         about whole workouts.
 
     Return:
-        DataFrame with one exercise per row, and its associated data.
+        DataFrame with one set per row, and its associated data.
     """
     column_names = [
         "Index",
@@ -93,21 +93,21 @@ def preprocess_workouts(workouts_csv: str) -> pd.DataFrame:
     return workouts_df
 
 
-def preprocess_exercises(exercises_csv) -> pd.DataFrame:
-    """Create a DataFrame from exercise-related CSV lines and clean it.
+def preprocess_sets(sets_csv) -> pd.DataFrame:
+    """Create a DataFrame from set-related CSV lines and clean it.
 
-    Create a DataFrame from exercise-related CSV lines, clean the data,
+    Create a DataFrame from set-related CSV lines, clean the data,
     and set data types.
 
     Args:
-        exercises_csv: Lines from the StrengthLog app export starting
+        sets_csv: Lines from the StrengthLog app export starting
         with '"Exercise, '.
 
     Return:
-        DataFrame with one exercise per row, and its associated data.
+        DataFrame with one set per row, and its associated data.
     """
-    exercises_s = StringIO(exercises_csv)
-    reader = csv.reader(exercises_s)
+    sets_s = StringIO(sets_csv)
+    reader = csv.reader(sets_s)
     records: list[dict[str, Any]] = []
     for row in reader:
         record: dict[str, Any] = {}
@@ -117,37 +117,37 @@ def preprocess_exercises(exercises_csv) -> pd.DataFrame:
             record[row[i]] = row[i + 1]
         records.append(record)
 
-    exercises_df = pd.DataFrame(records)
+    sets_df = pd.DataFrame(records)
 
-    # We only deal with exercises that have reps
-    exercises_df = exercises_df[exercises_df["reps"].notna()]
-    exercises_df = pd.DataFrame(exercises_df)  # Help mypy
+    # We only deal with sets that have reps
+    sets_df = sets_df[sets_df["reps"].notna()]
+    sets_df = pd.DataFrame(sets_df)  # Help mypy
 
-    exercises_df["workout_index"] = pd.to_numeric(exercises_df["workout_index"])
-    exercises_df["Set"] = pd.to_numeric(exercises_df["Set"], downcast="integer")
+    sets_df["workout_index"] = pd.to_numeric(sets_df["workout_index"])
+    sets_df["Set"] = pd.to_numeric(sets_df["Set"], downcast="integer")
 
-    exercises_df["Exercise"] = exercises_df["Exercise"].astype("string")
-    exercises_df["Exercise"] = exercises_df["Exercise"].map(
+    sets_df["Exercise"] = sets_df["Exercise"].astype("string")
+    sets_df["Exercise"] = sets_df["Exercise"].map(
         lambda x: x.replace("Exercise, ", "")
     )
 
-    if "reps" in exercises_df.columns:
-        exercises_df["reps"] = pd.to_numeric(exercises_df["reps"], downcast="integer")
+    if "reps" in sets_df.columns:
+        sets_df["reps"] = pd.to_numeric(sets_df["reps"], downcast="integer")
 
-    if "bodyweight" in exercises_df.columns:
-        exercises_df["bodyweight"] = pd.to_numeric(exercises_df["bodyweight"])
-    if "weight" in exercises_df.columns:
-        exercises_df["weight"] = pd.to_numeric(exercises_df["weight"])
-    if "extraWeight" in exercises_df.columns:
-        exercises_df["extraWeight"] = pd.to_numeric(exercises_df["extraWeight"])
-    if "time" in exercises_df.columns:
-        exercises_df["time"] = exercises_df["time"].astype("string")
-    if "distanceMeter" in exercises_df.columns:
-        exercises_df["distanceMeter"] = pd.to_numeric(exercises_df["distanceMeter"])
-    if "height" in exercises_df.columns:
-        exercises_df["height"] = pd.to_numeric(exercises_df["height"])
+    if "bodyweight" in sets_df.columns:
+        sets_df["bodyweight"] = pd.to_numeric(sets_df["bodyweight"])
+    if "weight" in sets_df.columns:
+        sets_df["weight"] = pd.to_numeric(sets_df["weight"])
+    if "extraWeight" in sets_df.columns:
+        sets_df["extraWeight"] = pd.to_numeric(sets_df["extraWeight"])
+    if "time" in sets_df.columns:
+        sets_df["time"] = sets_df["time"].astype("string")
+    if "distanceMeter" in sets_df.columns:
+        sets_df["distanceMeter"] = pd.to_numeric(sets_df["distanceMeter"])
+    if "height" in sets_df.columns:
+        sets_df["height"] = pd.to_numeric(sets_df["height"])
 
-    return exercises_df
+    return sets_df
 
 
 def preprocess_data(data_path: str) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -156,20 +156,20 @@ def preprocess_data(data_path: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     Process a CSV file to produce two DataFrames with structured data.
     The CSV file is not proper CSV so lines need to be divided up
     according to what data set it actually belongs to
-    (is the line for an exercise or a workout?). Appropriate types will
+    (is the line for an set or a workout?). Appropriate types will
     be added to columns. Indices will be added to the workouts, and
-    a corresponding 'workout_index' to the exercises.
+    a corresponding 'workout_index' to the sets.
 
     Param:
         data_path: Path to CSV file exported from the StrengthLog app.
 
     Return:
-        Two DataFrames – one with all exercises and associated data,
+        Two DataFrames – one with all sets and associated data,
         and one with all workouts and associated data.
     """
-    exercises_csv, workouts_csv = divide_up_csv_lines(data_path)
+    sets_csv, workouts_csv = divide_up_csv_lines(data_path)
 
     workouts_df = preprocess_workouts(workouts_csv)
-    exercises_df = preprocess_exercises(exercises_csv)
+    sets_df = preprocess_sets(sets_csv)
 
-    return exercises_df, workouts_df
+    return sets_df, workouts_df
