@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from strengthstats.analysis.constants import ET
 from strengthstats.analysis.preprocessor import (
     add_anyweight_column, divide_up_csv_lines, get_all_exercises_dfs,
     preprocess_data, preprocess_sets, preprocess_workouts,
@@ -214,17 +215,17 @@ def test_separate_sets_by_exercise_type():
     split_sets_dfs = separate_sets_by_exercise_type(sets_df)
 
     assert list(split_sets_dfs.keys()) == [
-        "time",
-        "reps",
-        "weight_time",
-        "weight_reps",
-        "other",
+        ET.TIME,
+        ET.REPS,
+        ET.WTIME,
+        ET.WREPS,
+        ET.OTHER,
     ]
-    assert len(split_sets_dfs["time"]) == 1
-    assert len(split_sets_dfs["reps"]) == 2
-    assert len(split_sets_dfs["weight_reps"]) == 10
-    assert len(split_sets_dfs["weight_time"]) == 2
-    assert len(split_sets_dfs["other"]) == 0
+    assert len(split_sets_dfs[ET.TIME]) == 1
+    assert len(split_sets_dfs[ET.REPS]) == 2
+    assert len(split_sets_dfs[ET.WREPS]) == 10
+    assert len(split_sets_dfs[ET.WTIME]) == 2
+    assert len(split_sets_dfs[ET.OTHER]) == 0
 
 
 def test_generate_exercises_dataframe():
@@ -266,7 +267,7 @@ def test_generate_exercises_dataframe():
 
     exercise_dfs = get_all_exercises_dfs(sets_df)
 
-    assert list(exercise_dfs["weight_reps"].columns) == [
+    assert list(exercise_dfs[ET.WREPS].columns) == [
         "workout_index",
         "Exercise",
         "sets",
@@ -276,32 +277,32 @@ def test_generate_exercises_dataframe():
     ]
 
     # Spot check one row in weight-reps DataFrame
-    assert exercise_dfs["weight_reps"].at[3, "Exercise"] == "Deadlift"
-    assert exercise_dfs["weight_reps"].at[3, "sets"] == 3
-    assert exercise_dfs["weight_reps"].at[3, "total_reps"] == 40
-    assert exercise_dfs["weight_reps"].at[3, "max_weight"] == 120
-    assert exercise_dfs["weight_reps"].at[3, "total_volume"] == 4580
+    assert exercise_dfs[ET.WREPS].at[3, "Exercise"] == "Deadlift"
+    assert exercise_dfs[ET.WREPS].at[3, "sets"] == 3
+    assert exercise_dfs[ET.WREPS].at[3, "total_reps"] == 40
+    assert exercise_dfs[ET.WREPS].at[3, "max_weight"] == 120
+    assert exercise_dfs[ET.WREPS].at[3, "total_volume"] == 4580
 
     # Check reps DataFrame
-    assert exercise_dfs["reps"].at[0, "Exercise"] == "Push-Up"
-    assert exercise_dfs["reps"].at[0, "sets"] == 2
-    assert exercise_dfs["reps"].at[0, "total_reps"] == 11
-    assert pd.isnull(exercise_dfs["reps"].at[0, "max_weight"])
-    assert exercise_dfs["reps"].at[0, "total_volume"] == 11
+    assert exercise_dfs[ET.REPS].at[0, "Exercise"] == "Push-Up"
+    assert exercise_dfs[ET.REPS].at[0, "sets"] == 2
+    assert exercise_dfs[ET.REPS].at[0, "total_reps"] == 11
+    assert pd.isnull(exercise_dfs[ET.REPS].at[0, "max_weight"])
+    assert exercise_dfs[ET.REPS].at[0, "total_volume"] == 11
 
     # Check time Dataframe
-    assert exercise_dfs["time"].at[0, "Exercise"] == "Handstand"
-    assert exercise_dfs["time"].at[0, "sets"] == 1
-    assert exercise_dfs["time"].at[0, "total_reps"] == 0
-    assert pd.isnull(exercise_dfs["time"].at[0, "max_weight"])
-    assert exercise_dfs["time"].at[0, "total_volume"] == pd.Timedelta(seconds=30)
+    assert exercise_dfs[ET.TIME].at[0, "Exercise"] == "Handstand"
+    assert exercise_dfs[ET.TIME].at[0, "sets"] == 1
+    assert exercise_dfs[ET.TIME].at[0, "total_reps"] == 0
+    assert pd.isnull(exercise_dfs[ET.TIME].at[0, "max_weight"])
+    assert exercise_dfs[ET.TIME].at[0, "total_volume"] == pd.Timedelta(seconds=30)
 
     # Check weight-time DataFrame"
-    assert exercise_dfs["weight_time"].at[0, "Exercise"] == "Plank"
-    assert exercise_dfs["weight_time"].at[0, "sets"] == 2
-    assert exercise_dfs["weight_time"].at[0, "total_reps"] == 0
-    assert exercise_dfs["weight_time"].at[0, "max_weight"] == 10
-    assert exercise_dfs["weight_time"].at[0, "total_volume"] == pd.Timedelta(minutes=10)
+    assert exercise_dfs[ET.WTIME].at[0, "Exercise"] == "Plank"
+    assert exercise_dfs[ET.WTIME].at[0, "sets"] == 2
+    assert exercise_dfs[ET.WTIME].at[0, "total_reps"] == 0
+    assert exercise_dfs[ET.WTIME].at[0, "max_weight"] == 10
+    assert exercise_dfs[ET.WTIME].at[0, "total_volume"] == pd.Timedelta(minutes=10)
 
 
 def test_add_anyweight_column():

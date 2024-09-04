@@ -29,6 +29,8 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame
 
+from strengthstats.analysis.constants import ET
+
 logger = logging.getLogger(__name__)
 
 
@@ -211,7 +213,7 @@ def separate_sets_by_exercise_type(sets_df: DataFrame):
     This division is necessary because the way of calculating 'volume'
     is different in each case.
     """
-    sets_dfs: dict[str, DataFrame] = {}
+    sets_dfs: dict[ET, DataFrame] = {}
 
     has_time = pd.notna(sets_df["time"])
     has_reps = pd.notna(sets_df["reps"])
@@ -224,12 +226,12 @@ def separate_sets_by_exercise_type(sets_df: DataFrame):
     weight_time_filter = has_time & has_weight & ~has_reps
     weight_reps_filter = ~has_time & has_weight & has_reps
 
-    sets_dfs["time"] = DataFrame(sets_df[time_filter])
-    sets_dfs["reps"] = DataFrame(sets_df[reps_filter])
-    sets_dfs["weight_time"] = DataFrame(sets_df[weight_time_filter])
-    sets_dfs["weight_reps"] = DataFrame(sets_df[weight_reps_filter])
+    sets_dfs[ET.TIME] = DataFrame(sets_df[time_filter])
+    sets_dfs[ET.REPS] = DataFrame(sets_df[reps_filter])
+    sets_dfs[ET.WTIME] = DataFrame(sets_df[weight_time_filter])
+    sets_dfs[ET.WREPS] = DataFrame(sets_df[weight_reps_filter])
 
-    sets_dfs["other"] = DataFrame(
+    sets_dfs[ET.OTHER] = DataFrame(
         sets_df[~(time_filter | reps_filter | weight_time_filter | weight_reps_filter)]
     )
 
@@ -243,7 +245,7 @@ def add_anyweight_column(sets_df: DataFrame) -> None:
     sets_df["anyWeight"] = sets_df["weight"] + sets_df["extraWeight"]
 
 
-def get_all_exercises_dfs(sets_df: DataFrame) -> dict[str, DataFrame]:
+def get_all_exercises_dfs(sets_df: DataFrame) -> dict[ET, DataFrame]:
     """Generate dict of DataFrames in 'exercise' format.
 
     Generate DataFrames with one weight-only workout-exercise per row,
@@ -264,25 +266,23 @@ def get_all_exercises_dfs(sets_df: DataFrame) -> dict[str, DataFrame]:
     split_sets_dfs = separate_sets_by_exercise_type(sets_df)
 
     # Fill in reps and anyWeight columns for all sub-DataFrames.
-    split_sets_dfs["other"]["anyWeight"] = np.nan
-    split_sets_dfs["other"]["volume"] = np.nan
-    split_sets_dfs["time"]["anyWeight"] = np.nan
-    split_sets_dfs["time"]["volume"] = split_sets_dfs["time"]["time"]
-    split_sets_dfs["reps"]["anyWeight"] = np.nan
-    split_sets_dfs["reps"]["volume"] = split_sets_dfs["reps"]["reps"]
-    add_anyweight_column(split_sets_dfs["weight_reps"])
-    split_sets_dfs["weight_reps"]["volume"] = (
-        split_sets_dfs["weight_reps"]["anyWeight"]
-        * split_sets_dfs["weight_reps"]["reps"]
+    split_sets_dfs[ET.OTHER]["anyWeight"] = np.nan
+    split_sets_dfs[ET.OTHER]["volume"] = np.nan
+    split_sets_dfs[ET.TIME]["anyWeight"] = np.nan
+    split_sets_dfs[ET.TIME]["volume"] = split_sets_dfs[ET.TIME]["time"]
+    split_sets_dfs[ET.REPS]["anyWeight"] = np.nan
+    split_sets_dfs[ET.REPS]["volume"] = split_sets_dfs[ET.REPS]["reps"]
+    add_anyweight_column(split_sets_dfs[ET.WREPS])
+    split_sets_dfs[ET.WREPS]["volume"] = (
+        split_sets_dfs[ET.WREPS]["anyWeight"] * split_sets_dfs[ET.WREPS]["reps"]
     )
-    add_anyweight_column(split_sets_dfs["weight_time"])
-    split_sets_dfs["weight_time"]["volume"] = (
-        split_sets_dfs["weight_time"]["anyWeight"]
-        * split_sets_dfs["weight_time"]["time"]
+    add_anyweight_column(split_sets_dfs[ET.WTIME])
+    split_sets_dfs[ET.WTIME]["volume"] = (
+        split_sets_dfs[ET.WTIME]["anyWeight"] * split_sets_dfs[ET.WTIME]["time"]
     )
 
     # Generate the exercise type DataFrames
-    exercise_dfs: dict[str, DataFrame] = {}
+    exercise_dfs: dict[ET, DataFrame] = {}
     for exercise_type, sets_df in split_sets_dfs.items():
         exercise_df = sets_df.groupby(
             ["workout_index", "Exercise"],
