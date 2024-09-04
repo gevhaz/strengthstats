@@ -12,6 +12,7 @@ pandas = "^2.2.2"
 
 [tool.poetry.group.dev-dependencies.dependencies]
 pytest = "^8.3.2"
+pandas-stubs = "^2.2.2.240807"
 
 [build-system]
 requires = ["poetry-core"]
