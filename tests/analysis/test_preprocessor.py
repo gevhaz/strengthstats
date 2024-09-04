@@ -1,12 +1,13 @@
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 import pytest
 
-from strengthstats.analysis.preprocessor import (divide_up_csv_lines,
-                                                 preprocess_data,
-                                                 preprocess_sets,
-                                                 preprocess_workouts)
+from strengthstats.analysis.preprocessor import (
+    add_anyweight_column, divide_up_csv_lines, get_all_exercises_dfs,
+    preprocess_data, preprocess_sets, preprocess_workouts,
+    separate_sets_by_exercise_type)
 
 TEST_DATA = "tests/analysis/resources/sample_export.csv"
 SETS_LINES = (
@@ -170,6 +171,166 @@ def test_preprocess_sets():
     assert sets_df.at[5, "reps"] == 15
     assert sets_df.at[5, "bodyweight"] == 70
     assert sets_df.at[5, "extraWeight"] == 10
-    assert not pd.notna(sets_df.at[5, "time"])
-    assert not pd.notna(sets_df.at[5, "distanceMeter"])
-    assert not pd.notna(sets_df.at[5, "height"])
+    assert pd.isna(sets_df.at[5, "time"])
+    assert pd.isna(sets_df.at[5, "distanceMeter"])
+    assert pd.isna(sets_df.at[5, "height"])
+
+
+def test_separate_sets_by_exercise_type():
+    thirty_sec = pd.Timedelta(seconds=30)
+    sets_df = pd.DataFrame(
+        [
+            (1, "Deadlift", 1, np.nan, np.nan, np.nan, 10, 100, np.nan, np.nan),
+            (1, "Deadlift", 2, np.nan, np.nan, np.nan, 11, 110, np.nan, np.nan),
+            (1, "Deadlift", 3, np.nan, np.nan, np.nan, 12, 130, np.nan, np.nan),
+            (1, "Squat", 1, np.nan, np.nan, np.nan, 18, 100, np.nan, np.nan),
+            (1, "Squat", 2, np.nan, np.nan, np.nan, 13, 100, np.nan, np.nan),
+            (1, "Push-Up", 1, 70, 0, np.nan, 8, np.nan, np.nan, np.nan),
+            (1, "Push-Up", 2, 70, 0, np.nan, 3, np.nan, np.nan, np.nan),
+            (1, "Back Extension", 1, 70, 10, np.nan, 10, np.nan, np.nan, np.nan),
+            (1, "Back Extension", 2, 70, 10, np.nan, 11, np.nan, np.nan, np.nan),
+            (1, "Plank", 1, 70, 10, thirty_sec, np.nan, np.nan, np.nan, np.nan),
+            (1, "Plank", 2, 70, 10, thirty_sec, np.nan, np.nan, np.nan, np.nan),
+            (2, "Deadlift", 1, np.nan, np.nan, np.nan, 15, 110, np.nan, np.nan),
+            (2, "Deadlift", 2, np.nan, np.nan, np.nan, 11, 120, np.nan, np.nan),
+            (2, "Deadlift", 3, np.nan, np.nan, np.nan, 14, 115, np.nan, np.nan),
+            (2, "Handstand", 1, 70, np.nan, thirty_sec, np.nan, np.nan, np.nan, np.nan),
+        ],
+        columns=pd.Index(
+            [
+                "workout_index",
+                "Exercise",
+                "Set",
+                "bodyweight",
+                "extraWeight",
+                "time",
+                "reps",
+                "weight",
+                "distanceMeter",
+                "height",
+            ]
+        ),
+    )
+    split_sets_dfs = separate_sets_by_exercise_type(sets_df)
+
+    assert list(split_sets_dfs.keys()) == [
+        "time",
+        "reps",
+        "weight_time",
+        "weight_reps",
+        "other",
+    ]
+    assert len(split_sets_dfs["time"]) == 1
+    assert len(split_sets_dfs["reps"]) == 2
+    assert len(split_sets_dfs["weight_reps"]) == 10
+    assert len(split_sets_dfs["weight_time"]) == 2
+    assert len(split_sets_dfs["other"]) == 0
+
+
+def test_generate_exercises_dataframe():
+    """Test that expected columns exist and have expected values."""
+    thirty_sec = pd.Timedelta(seconds=30)
+    sets_df = pd.DataFrame(
+        [
+            (1, "Deadlift", 1, np.nan, np.nan, np.nan, 10, 100, np.nan, np.nan),
+            (1, "Deadlift", 2, np.nan, np.nan, np.nan, 11, 110, np.nan, np.nan),
+            (1, "Deadlift", 3, np.nan, np.nan, np.nan, 12, 130, np.nan, np.nan),
+            (1, "Squat", 1, np.nan, np.nan, np.nan, 18, 100, np.nan, np.nan),
+            (1, "Squat", 2, np.nan, np.nan, np.nan, 13, 100, np.nan, np.nan),
+            (1, "Push-Up", 1, 70, 0, np.nan, 8, np.nan, np.nan, np.nan),
+            (1, "Push-Up", 2, 70, 0, np.nan, 3, np.nan, np.nan, np.nan),
+            (1, "Back Extension", 1, 70, 10, np.nan, 10, np.nan, np.nan, np.nan),
+            (1, "Back Extension", 2, 70, 10, np.nan, 11, np.nan, np.nan, np.nan),
+            (1, "Plank", 1, 70, 10, thirty_sec, np.nan, np.nan, np.nan, np.nan),
+            (1, "Plank", 2, 70, 10, thirty_sec, np.nan, np.nan, np.nan, np.nan),
+            (2, "Deadlift", 1, np.nan, np.nan, np.nan, 15, 110, np.nan, np.nan),
+            (2, "Deadlift", 2, np.nan, np.nan, np.nan, 11, 120, np.nan, np.nan),
+            (2, "Deadlift", 3, np.nan, np.nan, np.nan, 14, 115, np.nan, np.nan),
+            (2, "Handstand", 1, 70, np.nan, thirty_sec, np.nan, np.nan, np.nan, np.nan),
+        ],
+        columns=pd.Index(
+            [
+                "workout_index",
+                "Exercise",
+                "Set",
+                "bodyweight",
+                "extraWeight",
+                "time",
+                "reps",
+                "weight",
+                "distanceMeter",
+                "height",
+            ]
+        ),
+    )
+
+    exercise_dfs = get_all_exercises_dfs(sets_df)
+
+    assert list(exercise_dfs["weight_reps"].columns) == [
+        "workout_index",
+        "Exercise",
+        "sets",
+        "total_reps",
+        "max_weight",
+        "total_volume",
+    ]
+
+    # Spot check one row in weight-reps DataFrame
+    assert exercise_dfs["weight_reps"].at[3, "Exercise"] == "Deadlift"
+    assert exercise_dfs["weight_reps"].at[3, "sets"] == 3
+    assert exercise_dfs["weight_reps"].at[3, "total_reps"] == 40
+    assert exercise_dfs["weight_reps"].at[3, "max_weight"] == 120
+    assert exercise_dfs["weight_reps"].at[3, "total_volume"] == 4580
+
+    # Check reps DataFrame
+    assert exercise_dfs["reps"].at[0, "Exercise"] == "Push-Up"
+    assert exercise_dfs["reps"].at[0, "sets"] == 2
+    assert exercise_dfs["reps"].at[0, "total_reps"] == 11
+    assert pd.isnull(exercise_dfs["reps"].at[0, "max_weight"])
+    assert exercise_dfs["reps"].at[0, "total_volume"] == 11
+
+    # Check time Dataframe
+    assert exercise_dfs["time"].at[0, "Exercise"] == "Handstand"
+    assert exercise_dfs["time"].at[0, "sets"] == 1
+    assert exercise_dfs["time"].at[0, "total_reps"] == 0
+    assert pd.isnull(exercise_dfs["time"].at[0, "max_weight"])
+    assert exercise_dfs["time"].at[0, "total_volume"] == pd.Timedelta(seconds=30)
+
+    # Check weight-time DataFrame"
+    assert exercise_dfs["weight_time"].at[0, "Exercise"] == "Plank"
+    assert exercise_dfs["weight_time"].at[0, "sets"] == 2
+    assert exercise_dfs["weight_time"].at[0, "total_reps"] == 0
+    assert exercise_dfs["weight_time"].at[0, "max_weight"] == 10
+    assert exercise_dfs["weight_time"].at[0, "total_volume"] == pd.Timedelta(minutes=10)
+
+
+def test_add_anyweight_column():
+    """Test adding the column works."""
+    sets_df = pd.DataFrame(
+        [
+            (1, "exercise 1", 1, np.nan, np.nan, np.nan, 10, 100, np.nan, np.nan),
+            (1, "exercise 2", 1, 100, np.nan, np.nan, 10, 100, np.nan, np.nan),
+            (1, "exercise 3", 1, np.nan, 30, np.nan, 10, 100, np.nan, np.nan),
+        ],
+        columns=pd.Index(
+            [
+                "workout_index",
+                "Exercise",
+                "Set",
+                "bodyweight",
+                "extraWeight",
+                "time",
+                "reps",
+                "weight",
+                "distanceMeter",
+                "height",
+            ]
+        ),
+    )
+
+    add_anyweight_column(sets_df)
+
+    assert "anyWeight" in sets_df.columns
+    assert sets_df.at[0, "anyWeight"] == 100
+    assert sets_df.at[1, "anyWeight"] == 100
+    assert sets_df.at[2, "anyWeight"] == 130

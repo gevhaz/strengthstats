@@ -1,10 +1,33 @@
+"""Functions for preprocessing StrengthLog export CSV and create DFs.
+
+The functions in this file are used for preprocessing the StrenghtLog
+export CSV file and create DataFrames that can be used for analysis
+later.
+
+There are three general types of DataFrames defined in this file,
+'workouts', 'sets', and 'exercises'. The DataFrames of type 'exercise'
+have different subtypes, but their schema is the same. They differ in
+how the exercise 'volume' is calculated.
+
+The three types:
+
+- workouts: Each row has a full workout, with general workoutout data
+  such as sleep quality and stress level.
+- sets: Has one workout-exercise-set per row, that is, per-set data for
+  a set in a given exercise and workout.
+- exercises: Has one workout-exercise per line, that is, data for each
+  set of a given exercise in a given workout.
+"""
+
 import csv
 import logging
 import sys
 from io import StringIO
 from typing import Any
 
+import numpy as np
 import pandas as pd
+from pandas import DataFrame
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +71,7 @@ def divide_up_csv_lines(data_path: str) -> tuple[str, str]:
     return sets_csv, workouts_csv
 
 
-def preprocess_workouts(workouts_csv: str) -> pd.DataFrame:
+def preprocess_workouts(workouts_csv: str) -> DataFrame:
     """Create a DataFrame from workout-related CSV lines and clean it.
 
     Create a DataFrame from workout-related CSV lines, clean the data,
@@ -93,7 +116,7 @@ def preprocess_workouts(workouts_csv: str) -> pd.DataFrame:
     return workouts_df
 
 
-def preprocess_sets(sets_csv) -> pd.DataFrame:
+def preprocess_sets(sets_csv) -> DataFrame:
     """Create a DataFrame from set-related CSV lines and clean it.
 
     Create a DataFrame from set-related CSV lines, clean the data,
@@ -105,6 +128,7 @@ def preprocess_sets(sets_csv) -> pd.DataFrame:
 
     Return:
         DataFrame with one set per row, and its associated data.
+        Matching the original CSV file.
     """
     sets_s = StringIO(sets_csv)
     reader = csv.reader(sets_s)
@@ -117,19 +141,17 @@ def preprocess_sets(sets_csv) -> pd.DataFrame:
             record[row[i]] = row[i + 1]
         records.append(record)
 
-    sets_df = pd.DataFrame(records)
+    sets_df = DataFrame(records)
 
     # We only deal with sets that have reps
     sets_df = sets_df[sets_df["reps"].notna()]
-    sets_df = pd.DataFrame(sets_df)  # Help mypy
+    sets_df = DataFrame(sets_df)  # Help mypy
 
     sets_df["workout_index"] = pd.to_numeric(sets_df["workout_index"])
     sets_df["Set"] = pd.to_numeric(sets_df["Set"], downcast="integer")
 
     sets_df["Exercise"] = sets_df["Exercise"].astype("string")
-    sets_df["Exercise"] = sets_df["Exercise"].map(
-        lambda x: x.replace("Exercise, ", "")
-    )
+    sets_df["Exercise"] = sets_df["Exercise"].map(lambda x: x.replace("Exercise, ", ""))
 
     if "reps" in sets_df.columns:
         sets_df["reps"] = pd.to_numeric(sets_df["reps"], downcast="integer")
@@ -150,7 +172,7 @@ def preprocess_sets(sets_csv) -> pd.DataFrame:
     return sets_df
 
 
-def preprocess_data(data_path: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+def preprocess_data(data_path: str) -> tuple[DataFrame, DataFrame]:
     """Pre-process StrengthLog data at path.
 
     Process a CSV file to produce two DataFrames with structured data.
@@ -173,3 +195,105 @@ def preprocess_data(data_path: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     sets_df = preprocess_sets(sets_csv)
 
     return sets_df, workouts_df
+
+
+def separate_sets_by_exercise_type(sets_df: DataFrame):
+    """Divide sets into separate DataFrames based on exercise type.
+
+    There are five exercise types:
+
+    - Exercises with weight specified but no time, nor reps.
+    - Exercises with weight and reps specified.
+    - Exercises with weight and time specified.
+    - Exercises with time specified but no weight, nor reps.
+    - The rest.
+
+    This division is necessary because the way of calculating 'volume'
+    is different in each case.
+    """
+    sets_dfs: dict[str, DataFrame] = {}
+
+    has_time = pd.notna(sets_df["time"])
+    has_reps = pd.notna(sets_df["reps"])
+    has_weight = (pd.notna(sets_df["weight"]) & sets_df["weight"] > 0) | (
+        pd.notna(sets_df["extraWeight"]) & sets_df["extraWeight"] > 0
+    )
+
+    time_filter = has_time & ~has_weight & ~has_reps
+    reps_filter = ~has_time & ~has_weight & has_reps
+    weight_time_filter = has_time & has_weight & ~has_reps
+    weight_reps_filter = ~has_time & has_weight & has_reps
+
+    sets_dfs["time"] = DataFrame(sets_df[time_filter])
+    sets_dfs["reps"] = DataFrame(sets_df[reps_filter])
+    sets_dfs["weight_time"] = DataFrame(sets_df[weight_time_filter])
+    sets_dfs["weight_reps"] = DataFrame(sets_df[weight_reps_filter])
+
+    sets_dfs["other"] = DataFrame(
+        sets_df[~(time_filter | reps_filter | weight_time_filter | weight_reps_filter)]
+    )
+
+    return sets_dfs
+
+
+def add_anyweight_column(sets_df: DataFrame) -> None:
+    """Used for calculating volumn when weight is involved."""
+    sets_df["weight"] = sets_df["weight"].fillna(0)
+    sets_df["extraWeight"] = sets_df["extraWeight"].fillna(0)
+    sets_df["anyWeight"] = sets_df["weight"] + sets_df["extraWeight"]
+
+
+def get_all_exercises_dfs(sets_df: DataFrame) -> dict[str, DataFrame]:
+    """Generate dict of DataFrames in 'exercise' format.
+
+    Generate DataFrames with one weight-only workout-exercise per row,
+    with summarized values for that exercise – in particular:
+
+        - Total number of sets
+        - Maximum weight lifted per exercise
+        - Total number of reps
+        - Total volume lifted
+
+    Args:
+        sets_df: A DataFrame with one workout-exercise-set per row.
+
+    Return:
+        Dictionary of all the generated workout-exercise DataFrames.
+    """
+    # Divide the sets into categories
+    split_sets_dfs = separate_sets_by_exercise_type(sets_df)
+
+    # Fill in reps and anyWeight columns for all sub-DataFrames.
+    split_sets_dfs["other"]["anyWeight"] = np.nan
+    split_sets_dfs["other"]["volume"] = np.nan
+    split_sets_dfs["time"]["anyWeight"] = np.nan
+    split_sets_dfs["time"]["volume"] = split_sets_dfs["time"]["time"]
+    split_sets_dfs["reps"]["anyWeight"] = np.nan
+    split_sets_dfs["reps"]["volume"] = split_sets_dfs["reps"]["reps"]
+    add_anyweight_column(split_sets_dfs["weight_reps"])
+    split_sets_dfs["weight_reps"]["volume"] = (
+        split_sets_dfs["weight_reps"]["anyWeight"]
+        * split_sets_dfs["weight_reps"]["reps"]
+    )
+    add_anyweight_column(split_sets_dfs["weight_time"])
+    split_sets_dfs["weight_time"]["volume"] = (
+        split_sets_dfs["weight_time"]["anyWeight"]
+        * split_sets_dfs["weight_time"]["time"]
+    )
+
+    # Generate the exercise type DataFrames
+    exercise_dfs: dict[str, DataFrame] = {}
+    for exercise_type, sets_df in split_sets_dfs.items():
+        exercise_df = sets_df.groupby(
+            ["workout_index", "Exercise"],
+        )[["Set", "reps", "anyWeight", "volume"]]
+        exercise_df = exercise_df.agg(
+            sets=pd.NamedAgg(column="Set", aggfunc="max"),
+            total_reps=pd.NamedAgg(column="reps", aggfunc="sum"),
+            max_weight=pd.NamedAgg(column="anyWeight", aggfunc="max"),
+            total_volume=pd.NamedAgg(column="volume", aggfunc="sum"),
+        )
+        exercise_df = exercise_df.reset_index()
+        exercise_dfs[exercise_type] = exercise_df
+
+    return exercise_dfs
