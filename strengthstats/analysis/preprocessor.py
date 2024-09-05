@@ -118,7 +118,7 @@ def preprocess_workouts(workouts_csv: str) -> DataFrame:
     return workouts_df
 
 
-def preprocess_sets(sets_csv) -> DataFrame:
+def preprocess_sets(sets_csv: str, workouts_df: DataFrame) -> DataFrame:
     """Create a DataFrame from set-related CSV lines and clean it.
 
     Create a DataFrame from set-related CSV lines, clean the data,
@@ -171,6 +171,12 @@ def preprocess_sets(sets_csv) -> DataFrame:
     if "height" in sets_df.columns:
         sets_df["height"] = pd.to_numeric(sets_df["height"])
 
+    sets_df = sets_df.merge(
+        workouts_df["Date"],
+        left_on="workout_index",
+        right_index=True,
+    )
+
     return sets_df
 
 
@@ -194,7 +200,7 @@ def preprocess_data(data_path: str) -> tuple[DataFrame, DataFrame]:
     sets_csv, workouts_csv = divide_up_csv_lines(data_path)
 
     workouts_df = preprocess_workouts(workouts_csv)
-    sets_df = preprocess_sets(sets_csv)
+    sets_df = preprocess_sets(sets_csv, workouts_df)
 
     return sets_df, workouts_df
 
@@ -285,7 +291,7 @@ def get_all_exercises_dfs(sets_df: DataFrame) -> dict[ET, DataFrame]:
     exercise_dfs: dict[ET, DataFrame] = {}
     for exercise_type, sets_df in split_sets_dfs.items():
         exercise_df = sets_df.groupby(
-            ["workout_index", "Exercise"],
+            ["Date", "workout_index", "Exercise"],
         )[["Set", "reps", "anyWeight", "volume"]]
         exercise_df = exercise_df.agg(
             sets=pd.NamedAgg(column="Set", aggfunc="max"),

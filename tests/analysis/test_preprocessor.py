@@ -93,6 +93,7 @@ EXPECTED_SET_COLUMNS = [
     "weight",
     "distanceMeter",
     "height",
+    "Date",
 ]
 EXPECTED_WORKOUT_COLUMNS = [
     "Name",
@@ -102,6 +103,16 @@ EXPECTED_WORKOUT_COLUMNS = [
     "Sleep",
     "Calories",
     "Stress",
+]
+
+EXPECTED_EXERCISE_COLUMNS = [
+    "Date",
+    "workout_index",
+    "Exercise",
+    "sets",
+    "total_reps",
+    "max_weight",
+    "total_volume",
 ]
 
 
@@ -162,7 +173,16 @@ def test_preprocess_workouts():
 
 def test_preprocess_sets():
     """Test that DataFrame looks as expected given correct lines."""
-    sets_df = preprocess_sets(SETS_LINES)
+    workouts_df = pd.DataFrame(
+        [
+            ("Workout 0", datetime(year=2024, month=1, day=1), 0, -1, -1, -1, -1),
+            ("Workout 1", datetime(year=2024, month=1, day=8), 0, -1, -1, -1, -1),
+            ("Workout 2", datetime(year=2024, month=1, day=15), 0, -1, -1, -1, -1),
+            ("Workout 3", datetime(year=2024, month=1, day=22), 0, -1, -1, -1, -1),
+        ],
+        columns=EXPECTED_WORKOUT_COLUMNS,
+    )
+    sets_df = preprocess_sets(SETS_LINES, workouts_df)
     assert list(sets_df.columns) == EXPECTED_SET_COLUMNS
     assert len(sets_df) == 59
 
@@ -178,24 +198,26 @@ def test_preprocess_sets():
 
 
 def test_separate_sets_by_exercise_type():
-    thirty_sec = pd.Timedelta(seconds=30)
+    sec30 = pd.Timedelta(seconds=30)
+    day1 = datetime(year=2024, month=1, day=1)
+    day2 = datetime(year=2024, month=1, day=2)
     sets_df = pd.DataFrame(
         [
-            (1, "Deadlift", 1, np.nan, np.nan, np.nan, 10, 100, np.nan, np.nan),
-            (1, "Deadlift", 2, np.nan, np.nan, np.nan, 11, 110, np.nan, np.nan),
-            (1, "Deadlift", 3, np.nan, np.nan, np.nan, 12, 130, np.nan, np.nan),
-            (1, "Squat", 1, np.nan, np.nan, np.nan, 18, 100, np.nan, np.nan),
-            (1, "Squat", 2, np.nan, np.nan, np.nan, 13, 100, np.nan, np.nan),
-            (1, "Push-Up", 1, 70, 0, np.nan, 8, np.nan, np.nan, np.nan),
-            (1, "Push-Up", 2, 70, 0, np.nan, 3, np.nan, np.nan, np.nan),
-            (1, "Back Extension", 1, 70, 10, np.nan, 10, np.nan, np.nan, np.nan),
-            (1, "Back Extension", 2, 70, 10, np.nan, 11, np.nan, np.nan, np.nan),
-            (1, "Plank", 1, 70, 10, thirty_sec, np.nan, np.nan, np.nan, np.nan),
-            (1, "Plank", 2, 70, 10, thirty_sec, np.nan, np.nan, np.nan, np.nan),
-            (2, "Deadlift", 1, np.nan, np.nan, np.nan, 15, 110, np.nan, np.nan),
-            (2, "Deadlift", 2, np.nan, np.nan, np.nan, 11, 120, np.nan, np.nan),
-            (2, "Deadlift", 3, np.nan, np.nan, np.nan, 14, 115, np.nan, np.nan),
-            (2, "Handstand", 1, 70, np.nan, thirty_sec, np.nan, np.nan, np.nan, np.nan),
+            (1, "Deadlift", 1, np.nan, np.nan, np.nan, 10, 100, np.nan, np.nan, day1),
+            (1, "Deadlift", 2, np.nan, np.nan, np.nan, 11, 110, np.nan, np.nan, day1),
+            (1, "Deadlift", 3, np.nan, np.nan, np.nan, 12, 130, np.nan, np.nan, day1),
+            (1, "Squat", 1, np.nan, np.nan, np.nan, 18, 100, np.nan, np.nan, day1),
+            (1, "Squat", 2, np.nan, np.nan, np.nan, 13, 100, np.nan, np.nan, day1),
+            (1, "Push-Up", 1, 70, 0, np.nan, 8, np.nan, np.nan, np.nan, day1),
+            (1, "Push-Up", 2, 70, 0, np.nan, 3, np.nan, np.nan, np.nan, day1),
+            (1, "Back Extension", 1, 70, 10, np.nan, 10, np.nan, np.nan, np.nan, day1),
+            (1, "Back Extension", 2, 70, 10, np.nan, 11, np.nan, np.nan, np.nan, day1),
+            (1, "Plank", 1, 70, 10, sec30, np.nan, np.nan, np.nan, np.nan, day1),
+            (1, "Plank", 2, 70, 10, sec30, np.nan, np.nan, np.nan, np.nan, day1),
+            (2, "Deadlift", 1, np.nan, np.nan, np.nan, 15, 110, np.nan, np.nan, day2),
+            (2, "Deadlift", 2, np.nan, np.nan, np.nan, 11, 120, np.nan, np.nan, day2),
+            (2, "Deadlift", 3, np.nan, np.nan, np.nan, 14, 115, np.nan, np.nan, day2),
+            (2, "Handstan", 1, 70, np.nan, sec30, np.nan, np.nan, np.nan, np.nan, day2),
         ],
         columns=pd.Index(
             [
@@ -209,6 +231,7 @@ def test_separate_sets_by_exercise_type():
                 "weight",
                 "distanceMeter",
                 "height",
+                "Date",
             ]
         ),
     )
@@ -230,24 +253,26 @@ def test_separate_sets_by_exercise_type():
 
 def test_generate_exercises_dataframe():
     """Test that expected columns exist and have expected values."""
-    thirty_sec = pd.Timedelta(seconds=30)
+    sec30 = pd.Timedelta(seconds=30)
+    day1 = datetime(year=2024, month=1, day=1)
+    day2 = datetime(year=2024, month=1, day=2)
     sets_df = pd.DataFrame(
         [
-            (1, "Deadlift", 1, np.nan, np.nan, np.nan, 10, 100, np.nan, np.nan),
-            (1, "Deadlift", 2, np.nan, np.nan, np.nan, 11, 110, np.nan, np.nan),
-            (1, "Deadlift", 3, np.nan, np.nan, np.nan, 12, 130, np.nan, np.nan),
-            (1, "Squat", 1, np.nan, np.nan, np.nan, 18, 100, np.nan, np.nan),
-            (1, "Squat", 2, np.nan, np.nan, np.nan, 13, 100, np.nan, np.nan),
-            (1, "Push-Up", 1, 70, 0, np.nan, 8, np.nan, np.nan, np.nan),
-            (1, "Push-Up", 2, 70, 0, np.nan, 3, np.nan, np.nan, np.nan),
-            (1, "Back Extension", 1, 70, 10, np.nan, 10, np.nan, np.nan, np.nan),
-            (1, "Back Extension", 2, 70, 10, np.nan, 11, np.nan, np.nan, np.nan),
-            (1, "Plank", 1, 70, 10, thirty_sec, np.nan, np.nan, np.nan, np.nan),
-            (1, "Plank", 2, 70, 10, thirty_sec, np.nan, np.nan, np.nan, np.nan),
-            (2, "Deadlift", 1, np.nan, np.nan, np.nan, 15, 110, np.nan, np.nan),
-            (2, "Deadlift", 2, np.nan, np.nan, np.nan, 11, 120, np.nan, np.nan),
-            (2, "Deadlift", 3, np.nan, np.nan, np.nan, 14, 115, np.nan, np.nan),
-            (2, "Handstand", 1, 70, np.nan, thirty_sec, np.nan, np.nan, np.nan, np.nan),
+            (1, "Deadlift", 1, np.nan, np.nan, np.nan, 10, 100, np.nan, np.nan, day1),
+            (1, "Deadlift", 2, np.nan, np.nan, np.nan, 11, 110, np.nan, np.nan, day1),
+            (1, "Deadlift", 3, np.nan, np.nan, np.nan, 12, 130, np.nan, np.nan, day1),
+            (1, "Squat", 1, np.nan, np.nan, np.nan, 18, 100, np.nan, np.nan, day1),
+            (1, "Squat", 2, np.nan, np.nan, np.nan, 13, 100, np.nan, np.nan, day1),
+            (1, "Push-Up", 1, 70, 0, np.nan, 8, np.nan, np.nan, np.nan, day1),
+            (1, "Push-Up", 2, 70, 0, np.nan, 3, np.nan, np.nan, np.nan, day1),
+            (1, "Back Extension", 1, 70, 10, np.nan, 10, np.nan, np.nan, np.nan, day1),
+            (1, "Back Extension", 2, 70, 10, np.nan, 11, np.nan, np.nan, np.nan, day1),
+            (1, "Plank", 1, 70, 10, sec30, np.nan, np.nan, np.nan, np.nan, day1),
+            (1, "Plank", 2, 70, 10, sec30, np.nan, np.nan, np.nan, np.nan, day1),
+            (2, "Deadlift", 1, np.nan, np.nan, np.nan, 15, 110, np.nan, np.nan, day2),
+            (2, "Deadlift", 2, np.nan, np.nan, np.nan, 11, 120, np.nan, np.nan, day2),
+            (2, "Deadlift", 3, np.nan, np.nan, np.nan, 14, 115, np.nan, np.nan, day2),
+            (2, "Handstan", 1, 70, np.nan, sec30, np.nan, np.nan, np.nan, np.nan, day2),
         ],
         columns=pd.Index(
             [
@@ -261,22 +286,17 @@ def test_generate_exercises_dataframe():
                 "weight",
                 "distanceMeter",
                 "height",
+                "Date",
             ]
         ),
     )
 
     exercise_dfs = get_all_exercises_dfs(sets_df)
 
-    assert list(exercise_dfs[ET.WREPS].columns) == [
-        "workout_index",
-        "Exercise",
-        "sets",
-        "total_reps",
-        "max_weight",
-        "total_volume",
-    ]
+    assert list(exercise_dfs[ET.WREPS].columns) == EXPECTED_EXERCISE_COLUMNS
 
     # Spot check one row in weight-reps DataFrame
+    assert exercise_dfs[ET.WREPS].at[3, "Date"] == datetime(year=2024, month=1, day=2)
     assert exercise_dfs[ET.WREPS].at[3, "Exercise"] == "Deadlift"
     assert exercise_dfs[ET.WREPS].at[3, "sets"] == 3
     assert exercise_dfs[ET.WREPS].at[3, "total_reps"] == 40
@@ -284,6 +304,7 @@ def test_generate_exercises_dataframe():
     assert exercise_dfs[ET.WREPS].at[3, "total_volume"] == 4580
 
     # Check reps DataFrame
+    assert exercise_dfs[ET.REPS].at[0, "Date"] == datetime(year=2024, month=1, day=1)
     assert exercise_dfs[ET.REPS].at[0, "Exercise"] == "Push-Up"
     assert exercise_dfs[ET.REPS].at[0, "sets"] == 2
     assert exercise_dfs[ET.REPS].at[0, "total_reps"] == 11
@@ -291,13 +312,15 @@ def test_generate_exercises_dataframe():
     assert exercise_dfs[ET.REPS].at[0, "total_volume"] == 11
 
     # Check time Dataframe
-    assert exercise_dfs[ET.TIME].at[0, "Exercise"] == "Handstand"
+    assert exercise_dfs[ET.TIME].at[0, "Date"] == datetime(year=2024, month=1, day=2)
+    assert exercise_dfs[ET.TIME].at[0, "Exercise"] == "Handstan"
     assert exercise_dfs[ET.TIME].at[0, "sets"] == 1
     assert exercise_dfs[ET.TIME].at[0, "total_reps"] == 0
     assert pd.isnull(exercise_dfs[ET.TIME].at[0, "max_weight"])
     assert exercise_dfs[ET.TIME].at[0, "total_volume"] == pd.Timedelta(seconds=30)
 
     # Check weight-time DataFrame"
+    assert exercise_dfs[ET.WTIME].at[0, "Date"] == datetime(year=2024, month=1, day=1)
     assert exercise_dfs[ET.WTIME].at[0, "Exercise"] == "Plank"
     assert exercise_dfs[ET.WTIME].at[0, "sets"] == 2
     assert exercise_dfs[ET.WTIME].at[0, "total_reps"] == 0
@@ -307,11 +330,12 @@ def test_generate_exercises_dataframe():
 
 def test_add_anyweight_column():
     """Test adding the column works."""
+    day1 = datetime(year=2024, month=1, day=1)
     sets_df = pd.DataFrame(
         [
-            (1, "exercise 1", 1, np.nan, np.nan, np.nan, 10, 100, np.nan, np.nan),
-            (1, "exercise 2", 1, 100, np.nan, np.nan, 10, 100, np.nan, np.nan),
-            (1, "exercise 3", 1, np.nan, 30, np.nan, 10, 100, np.nan, np.nan),
+            (1, "exercise 1", 1, np.nan, np.nan, np.nan, 10, 100, np.nan, np.nan, day1),
+            (1, "exercise 2", 1, 100, np.nan, np.nan, 10, 100, np.nan, np.nan, day1),
+            (1, "exercise 3", 1, np.nan, 30, np.nan, 10, 100, np.nan, np.nan, day1),
         ],
         columns=pd.Index(
             [
@@ -325,6 +349,7 @@ def test_add_anyweight_column():
                 "weight",
                 "distanceMeter",
                 "height",
+                "Date",
             ]
         ),
     )
