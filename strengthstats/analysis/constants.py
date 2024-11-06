@@ -1,3 +1,5 @@
+"""Constant values used in more than one other file."""
+
 from enum import Enum, auto
 
 

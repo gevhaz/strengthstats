@@ -54,4 +54,4 @@ def test_generate_exercise_plots():
         plotmock.title.assert_called_once_with("Deadlift progress")
         plotmock.xlabel.assert_called_once_with("Date")
         plotmock.ylabel.assert_called_once_with("Volume (ton)")
-        plotmock.savefig.assert_called_once_with(Path("/path/to/nowhere/Deadlift.png"))
+        plotmock.savefig.assert_called_once_with("/path/to/nowhere/Deadlift.png")

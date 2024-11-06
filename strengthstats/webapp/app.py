@@ -1,9 +1,13 @@
+"""Main logic of the web app."""
+
 import os
-import shutil
+from typing import NoReturn
 from uuid import uuid4
 
 import pandas as pd
 from flask import Flask, abort, redirect, render_template, request, session, url_for
+from flask.sessions import SessionMixin
+from werkzeug.wrappers.response import Response
 
 from strengthstats.analysis.constants import ET, Units
 from strengthstats.analysis.preprocessor import get_all_exercises_dfs, preprocess_data
@@ -21,15 +25,14 @@ if not os.path.exists(DATA_FOLDER):
 
 
 @app.route("/")
-def index():
+def index() -> str:
     """Render the homepage of the app."""
     return render_template("index.html")
 
 
 @app.route("/upload_csv", methods=["POST"])
-def upload_strenghlog_export():
+def upload_strenghlog_export() -> Response:
     """Route handler for accepting the Strengthlog export CSV file."""
-
     # Check that the file is available
     if "strengthlog_csv" not in request.files:
         app.logger.warning("Something went wrong with submitting the file")
@@ -40,7 +43,7 @@ def upload_strenghlog_export():
         return redirect(url_for("index"))
 
     # Save the file to disk for use in report generation
-    ensure_user_folder()
+    ensure_user_folder(session)
     session["csv_path"] = os.path.join(session["user_folder"], EXPORT_CSV_NAME)
     f.save(session["csv_path"])
     app.logger.info(f"Saved/overwrote CSV file {session['csv_path']}")
@@ -49,7 +52,7 @@ def upload_strenghlog_export():
 
 
 @app.route("/report")
-def generate_report():
+def generate_report() -> str | NoReturn:
     """Generate report."""
     if "csv_path" not in session or not os.path.exists(session["csv_path"]):
         abort(500, "No CSV file found for this session")
@@ -67,7 +70,7 @@ def generate_plots(
     sets_df: pd.DataFrame,
     exercise_dfs: dict[ET, pd.DataFrame],
     plots_dir: str,
-    session: dict[str, str],
+    session: SessionMixin,
 ) -> None:
     """Generate plots for user session and save."""
     exercise_type_map = {}
@@ -91,7 +94,7 @@ def generate_plots(
         )
 
 
-def ensure_user_folder(session: dict[str, str]):
+def ensure_user_folder(session: SessionMixin) -> None:
     """Ensure folder structure for user data exists when session starts.
 
     Ensure folder structure for user data exists when session starts,
