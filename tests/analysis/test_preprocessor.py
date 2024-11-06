@@ -1,8 +1,9 @@
+"""Tests for preprocessing.py."""
+
 from datetime import datetime
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from strengthstats.analysis.constants import ET
 from strengthstats.analysis.preprocessor import (
@@ -203,6 +204,7 @@ def test_preprocess_sets():
 
 
 def test_separate_sets_by_exercise_type():
+    """Test exercises are correctly split into the right categories."""
     sec30 = pd.Timedelta(seconds=30)
     day1 = datetime(year=2024, month=1, day=1)
     day2 = datetime(year=2024, month=1, day=2)

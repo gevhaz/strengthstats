@@ -205,7 +205,7 @@ def preprocess_data(data_path: str) -> tuple[DataFrame, DataFrame]:
     return sets_df, workouts_df
 
 
-def separate_sets_by_exercise_type(sets_df: DataFrame):
+def separate_sets_by_exercise_type(sets_df: DataFrame) -> dict[ET, DataFrame]:
     """Divide sets into separate DataFrames based on exercise type.
 
     There are five exercise types:
@@ -245,7 +245,7 @@ def separate_sets_by_exercise_type(sets_df: DataFrame):
 
 
 def add_anyweight_column(sets_df: DataFrame) -> None:
-    """Used for calculating volumn when weight is involved."""
+    """Calculate volume when weight is involved."""
     sets_df["weight"] = sets_df["weight"].fillna(0)
     sets_df["extraWeight"] = sets_df["extraWeight"].fillna(0)
     sets_df["anyWeight"] = sets_df["weight"] + sets_df["extraWeight"]
@@ -290,10 +290,10 @@ def get_all_exercises_dfs(sets_df: DataFrame) -> dict[ET, DataFrame]:
     # Generate the exercise type DataFrames
     exercise_dfs: dict[ET, DataFrame] = {}
     for exercise_type, sets_df in split_sets_dfs.items():
-        exercise_df = sets_df.groupby(
+        grouped_exercise_df = sets_df.groupby(
             ["Date", "workout_index", "Exercise"],
         )[["Set", "reps", "anyWeight", "volume"]]
-        exercise_df = exercise_df.agg(
+        exercise_df = grouped_exercise_df.agg(
             sets=pd.NamedAgg(column="Set", aggfunc="max"),
             total_reps=pd.NamedAgg(column="reps", aggfunc="sum"),
             max_weight=pd.NamedAgg(column="anyWeight", aggfunc="max"),
