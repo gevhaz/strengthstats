@@ -1,0 +1,75 @@
+---
+name: Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  spellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: gevhaz/word-warden@v1.0.0
+
+  lint:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        tool:
+          - "flake8"
+          - "mypy --strict --exclude=tests"
+          - "black --check --diff --color"
+          - "isort --check --diff"
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.12"
+          cache: "poetry"
+
+      - name: Install dependencies
+        run: |
+          poetry env use $(which python3.12)
+          poetry install
+
+      - name: Run check
+        run: poetry run ${{matrix.tool}} .
+
+  test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install ffmpeg
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.12"
+          cache: "poetry"
+
+      - name: Install dependencies
+        run: |
+          poetry env use $(which python3.12)
+          poetry install
+
+      - name: Run pytest
+        run: poetry run pytest
