@@ -1,8 +1,10 @@
 """Functions for generating plots."""
 
-from datetime import datetime
-from pathlib import Path
+import os
 
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -11,7 +13,7 @@ def generate_exercise_plots(
     exercise_df: pd.DataFrame,
     exercise_name: str,
     unit: str,
-    dst_dir: Path,
+    dst_dir: str,
 ) -> None:
     """Write plot of exercise maxes to dst_dir.
 
@@ -25,8 +27,10 @@ def generate_exercise_plots(
         dst_dir: Directory where to save the plot.
     """
     plt.figure(figsize=(8, 6))
-    plt.plot(exercise_df["Date"], exercise_df["total_volume"])
+    this_exc = exercise_df["Exercise"] == exercise_name
+    plt.plot(exercise_df[this_exc]["Date"], exercise_df[this_exc]["total_volume"])
     plt.title(f"{exercise_name} progress")
     plt.xlabel("Date")
     plt.ylabel(f"Volume ({unit})")
-    plt.savefig(dst_dir / f"{exercise_name}.png")
+    plt.savefig(os.path.join(dst_dir, f"{exercise_name}.png"))
+    plt.close()

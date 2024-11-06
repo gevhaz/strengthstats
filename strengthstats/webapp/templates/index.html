@@ -1,8 +1,20 @@
-<h1>StrengthStats</h1>
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>StrengthStats</title>
+    </head>
+    <body>
+        <h1>StrengthStats</h1>
 
-<form>
-    <label for="strengthlog_csv">Please select the Strengthlog export CSV file you want to use:</label>
-    <br>
-    <br>
-    <input type="file" name="strengthlog_csv" accept=".csv">
-</form>
+        <form action="/upload_csv" method="post" enctype="multipart/form-data">
+            <label for="strengthlog_csv">Please select the Strengthlog export CSV file you want to use:
+            </label>
+            <br>
+            <br>
+            <input type="file" name="strengthlog_csv" accept=".csv">
+            <br>
+            <br>
+            <input type="submit" value="Submit">
+        </form>
+    </body>
+</html>

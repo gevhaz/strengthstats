@@ -6,9 +6,14 @@ import pytest
 
 from strengthstats.analysis.constants import ET
 from strengthstats.analysis.preprocessor import (
-    add_anyweight_column, divide_up_csv_lines, get_all_exercises_dfs,
-    preprocess_data, preprocess_sets, preprocess_workouts,
-    separate_sets_by_exercise_type)
+    add_anyweight_column,
+    divide_up_csv_lines,
+    get_all_exercises_dfs,
+    preprocess_data,
+    preprocess_sets,
+    preprocess_workouts,
+    separate_sets_by_exercise_type,
+)
 
 TEST_DATA = "tests/analysis/resources/sample_export.csv"
 SETS_LINES = (
