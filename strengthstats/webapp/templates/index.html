@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>StrengthStats</title>
     </head>
     <body>
         <h1>StrengthStats</h1>
 
         <form action="/upload_csv" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label for="strengthlog_csv">Please select the Strengthlog export CSV file you want to use:
             </label>
             <br>
