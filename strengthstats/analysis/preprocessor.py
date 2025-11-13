@@ -21,7 +21,6 @@ The three types:
 
 import csv
 import logging
-import sys
 from io import StringIO
 from typing import Any
 
@@ -32,6 +31,12 @@ from pandas import DataFrame
 from strengthstats.analysis.constants import ET
 
 logger = logging.getLogger(__name__)
+
+
+class InvalidCSVFormatError(ValueError):
+    """Raised when CSV file format is invalid or incompatible."""
+
+    pass
 
 
 def divide_up_csv_lines(data_path: str) -> tuple[str, str]:
@@ -50,19 +55,22 @@ def divide_up_csv_lines(data_path: str) -> tuple[str, str]:
     dividing_line = "Name,Date,Body weight,Shape,Sleep,Calories,Stress"
     try:
         raw_workout_data = raw_content.strip().split(dividing_line)[1]
-    except IndexError:
+    except IndexError as e:
         logger.error("The CSV file does not appear to be a StrengthLog app export file")
-        sys.exit(1)
+        raise InvalidCSVFormatError(
+            "CSV file does not appear to be a StrengthLog export. "
+            f"Missing expected header: '{dividing_line}'"
+        ) from e
 
-    raw_workouts = raw_workout_data.split("\n\n")
+    raw_workouts = [w.strip() for w in raw_workout_data.split("\n\n") if w.strip()]
     if len(raw_workouts) < 1:
         logger.error("The CSV file does not contain any workouts")
-        sys.exit(1)
+        raise InvalidCSVFormatError("CSV file does not contain any workouts")
 
     workouts_lines: list[str] = []
     sets_lines: list[str] = []
     for index, raw_workout in enumerate(raw_workouts):
-        raw_workout_lines = raw_workout.strip().split("\n")
+        raw_workout_lines = raw_workout.split("\n")
         workouts_lines.append(f"{index},{raw_workout_lines[0]}")
         for line in raw_workout_lines[1:]:
             sets_lines.append(f"{index},{line}")

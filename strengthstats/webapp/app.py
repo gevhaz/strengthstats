@@ -10,7 +10,11 @@ from flask.sessions import SessionMixin
 from werkzeug.wrappers.response import Response
 
 from strengthstats.analysis.constants import ET, Units
-from strengthstats.analysis.preprocessor import get_all_exercises_dfs, preprocess_data
+from strengthstats.analysis.preprocessor import (
+    InvalidCSVFormatError,
+    get_all_exercises_dfs,
+    preprocess_data,
+)
 from strengthstats.analysis.visualizer import generate_exercise_plots
 
 app = Flask(__name__)
@@ -43,10 +47,14 @@ def upload_strenghlog_export() -> Response:
         return redirect(url_for("index"))
 
     # Save the file to disk for use in report generation
-    ensure_user_folder(session)
-    session["csv_path"] = os.path.join(session["user_folder"], EXPORT_CSV_NAME)
-    f.save(session["csv_path"])
-    app.logger.info(f"Saved/overwrote CSV file {session['csv_path']}")
+    try:
+        ensure_user_folder(session)
+        session["csv_path"] = os.path.join(session["user_folder"], EXPORT_CSV_NAME)
+        f.save(session["csv_path"])
+        app.logger.info(f"Saved/overwrote CSV file {session['csv_path']}")
+    except OSError as e:
+        app.logger.error(f"Failed to save uploaded file: {e}")
+        abort(500, "Failed to save uploaded file")
 
     return redirect(url_for("generate_report"))
 
@@ -55,13 +63,23 @@ def upload_strenghlog_export() -> Response:
 def generate_report() -> str | NoReturn:
     """Generate report."""
     if "csv_path" not in session or not os.path.exists(session["csv_path"]):
-        abort(500, "No CSV file found for this session")
+        abort(404, "No CSV file found for this session")
 
-    sets_df, _ = preprocess_data(session["csv_path"])
-    exercise_dfs = get_all_exercises_dfs(sets_df)
-    plots_dir = os.path.join(session["user_folder"], "plots")
-    generate_plots(sets_df, exercise_dfs, plots_dir, session)
-    app.logger.info(f"Generated and saved plots to {plots_dir}")
+    try:
+        sets_df, _ = preprocess_data(session["csv_path"])
+        exercise_dfs = get_all_exercises_dfs(sets_df)
+        plots_dir = os.path.join(session["user_folder"], "plots")
+        generate_plots(sets_df, exercise_dfs, plots_dir, session)
+        app.logger.info(f"Generated and saved plots to {plots_dir}")
+    except InvalidCSVFormatError as e:
+        app.logger.error(f"Invalid CSV format: {e}")
+        abort(400, f"Invalid CSV file format: {e}")
+    except (OSError, IOError) as e:
+        app.logger.error(f"File operation failed: {e}")
+        abort(500, "Failed to process CSV file or generate plots")
+    except Exception as e:
+        app.logger.error(f"Unexpected error during report generation: {e}")
+        abort(500, "An unexpected error occurred while generating the report")
 
     return render_template("report.html")
 
@@ -99,19 +117,26 @@ def ensure_user_folder(session: SessionMixin) -> None:
 
     Ensure folder structure for user data exists when session starts,
     including subfolder for plots.
+
+    Raises:
+        OSError: If directory creation fails.
     """
     if "id" not in session:
         session["id"] = str(uuid4())
 
     user_folder = os.path.join(app.config["DATA_FOLDER"], session["id"])
 
-    if not os.path.exists(user_folder):
-        os.mkdir(user_folder)
-        app.logger.info("User directory created")
+    try:
+        if not os.path.exists(user_folder):
+            os.mkdir(user_folder)
+            app.logger.info("User directory created")
 
-    if not os.path.exists(os.path.join(user_folder, "plots")):
-        os.mkdir(os.path.join(user_folder, "plots"))
-        app.logger.info("User plots directory created")
+        if not os.path.exists(os.path.join(user_folder, "plots")):
+            os.mkdir(os.path.join(user_folder, "plots"))
+            app.logger.info("User plots directory created")
 
-    if "user_folder" not in session:
-        session["user_folder"] = user_folder
+        if "user_folder" not in session:
+            session["user_folder"] = user_folder
+    except OSError as e:
+        app.logger.error(f"Failed to create user directories: {e}")
+        raise

@@ -1,12 +1,15 @@
 """Tests for preprocessing.py."""
 
+import tempfile
 from datetime import datetime
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from strengthstats.analysis.constants import ET
 from strengthstats.analysis.preprocessor import (
+    InvalidCSVFormatError,
     add_anyweight_column,
     divide_up_csv_lines,
     get_all_exercises_dfs,
@@ -367,3 +370,70 @@ def test_add_anyweight_column():
     assert sets_df.at[0, "anyWeight"] == 100
     assert sets_df.at[1, "anyWeight"] == 100
     assert sets_df.at[2, "anyWeight"] == 130
+
+
+def test_invalid_csv_missing_dividing_line():
+    """Test that InvalidCSVFormatError is raised for invalid CSV format.
+
+    When CSV file doesn't have the expected StrengthLog header,
+    InvalidCSVFormatError should be raised instead of sys.exit().
+    """
+    invalid_csv_content = "col1,col2,col3\nval1,val2,val3\n"
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+        f.write(invalid_csv_content)
+        temp_path = f.name
+
+    try:
+        with pytest.raises(
+            InvalidCSVFormatError, match="does not appear to be a StrengthLog export"
+        ):
+            divide_up_csv_lines(temp_path)
+    finally:
+        import os
+
+        os.unlink(temp_path)
+
+
+def test_invalid_csv_no_workouts():
+    """Test that InvalidCSVFormatError is raised when no workouts found.
+
+    When CSV has the header but no workout data,
+    InvalidCSVFormatError should be raised.
+    """
+    csv_with_header_no_data = (
+        "Exercise,Set\n"
+        "Name,Date,Body weight,Shape,Sleep,Calories,Stress\n"
+        # No workout data after this
+    )
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+        f.write(csv_with_header_no_data)
+        temp_path = f.name
+
+    try:
+        with pytest.raises(
+            InvalidCSVFormatError, match="does not contain any workouts"
+        ):
+            divide_up_csv_lines(temp_path)
+    finally:
+        import os
+
+        os.unlink(temp_path)
+
+
+def test_preprocess_data_raises_invalid_csv_error():
+    """Test that preprocess_data propagates InvalidCSVFormatError."""
+    invalid_csv_content = "not,a,strengthlog,export\n1,2,3,4\n"
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+        f.write(invalid_csv_content)
+        temp_path = f.name
+
+    try:
+        with pytest.raises(InvalidCSVFormatError):
+            preprocess_data(temp_path)
+    finally:
+        import os
+
+        os.unlink(temp_path)
